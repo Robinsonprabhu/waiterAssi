@@ -4,6 +4,8 @@
 // When adding Firebase, you will add fromJson/toJson methods here.
 // ===========================================================================
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 // Represents a single item on the restaurant menu
 class MenuItem {
   final String id;
@@ -20,17 +22,21 @@ class MenuItem {
     required this.category,
   });
 
-  // ---------------------------------------------------------------------------
-  // FIREBASE SWAP POINT: Add fromJson/toJson when connecting Firestore
-  // factory MenuItem.fromJson(Map<String, dynamic> json) => MenuItem(
-  //   id: json['id'],
-  //   name: json['name'],
-  //   emoji: json['emoji'],
-  //   price: (json['price'] as num).toDouble(),
-  //   category: json['category'],
-  // );
-  // Map<String, dynamic> toJson() => { 'id': id, 'name': name, ... };
-  // ---------------------------------------------------------------------------
+  factory MenuItem.fromJson(Map<String, dynamic> json) => MenuItem(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    emoji: json['emoji'] as String,
+    price: (json['price'] as num).toDouble(),
+    category: json['category'] as String,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'emoji': emoji,
+    'price': price,
+    'category': category,
+  };
 }
 
 // Represents one item inside a placed order, with quantity
@@ -42,6 +48,16 @@ class OrderItem {
 
   // Convenience getter
   double get subtotal => menuItem.price * quantity;
+
+  factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
+    menuItem: MenuItem.fromJson(json['menuItem'] as Map<String, dynamic>),
+    quantity: json['quantity'] as int,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'menuItem': menuItem.toJson(),
+    'quantity': quantity,
+  };
 }
 
 // Enum for the lifecycle of an order
@@ -85,9 +101,27 @@ class Order {
   String get itemSummary =>
       items.map((i) => '${i.quantity}x ${i.menuItem.name}').join(', ');
 
-  // ---------------------------------------------------------------------------
-  // FIREBASE SWAP POINT: Add fromJson/toJson for Firestore serialization
-  // factory Order.fromJson(Map<String, dynamic> json) => ...
-  // Map<String, dynamic> toJson() => ...
-  // ---------------------------------------------------------------------------
+  factory Order.fromJson(String documentId, Map<String, dynamic> json) {
+    return Order(
+      id: documentId,
+      tableNumber: json['tableNumber'] as int,
+      items: (json['items'] as List<dynamic>)
+          .map((itemJson) => OrderItem.fromJson(itemJson as Map<String, dynamic>))
+          .toList(),
+      status: OrderStatus.values.firstWhere(
+        (e) => e.name == json['status'],
+        orElse: () => OrderStatus.pending,
+      ),
+      createdAt: json['createdAt'] != null 
+          ? (json['createdAt'] as Timestamp).toDate()
+          : DateTime.now(), // Fallback if server timestamp hasn't populated yet
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'tableNumber': tableNumber,
+    'items': items.map((i) => i.toJson()).toList(),
+    'status': status.name,
+    // Note: createdAt is handled specially by the repository via FieldValue.serverTimestamp() during creation.
+  };
 }

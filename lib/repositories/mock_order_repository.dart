@@ -81,4 +81,10 @@ class MockOrderRepository implements IOrderRepository {
     final order = _orders.firstWhere((o) => o.id == orderId);
     order.status = newStatus;
   }
+
+  @override
+  Future<void> deleteOrder(String orderId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    _orders.removeWhere((o) => o.id == orderId);
+  }
 }

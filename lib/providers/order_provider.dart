@@ -7,10 +7,12 @@
 // The UI never touches the repository directly.
 // ===========================================================================
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:waiter_assistant/models/order_model.dart';
 import 'package:waiter_assistant/repositories/i_order_repository.dart';
 import 'package:waiter_assistant/repositories/mock_order_repository.dart';
+import 'package:waiter_assistant/repositories/firebase_order_repository.dart';
 
 class OrderProvider extends ChangeNotifier {
 
@@ -24,11 +26,38 @@ class OrderProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   final IOrderRepository _repository;
 
-  OrderProvider([IOrderRepository? repository])
-      : _repository = repository ?? MockOrderRepository();
-
   // --- Internal State ---
   bool _isLoading = false;
+  List<Order> _allOrders = [];
+  StreamSubscription<List<Order>>? _ordersSubscription;
+
+  OrderProvider([IOrderRepository? repository])
+      : _repository = repository ?? MockOrderRepository() {
+    _initStream();
+  }
+
+  void _initStream() {
+    if (_repository is FirebaseOrderRepository) {
+      _ordersSubscription = (_repository as FirebaseOrderRepository)
+          .watchAllOrders()
+          .cast<List<Order>>()
+          .listen(
+        (orders) {
+          _allOrders = orders;
+          notifyListeners(); // Auto-update UI on Firestore change
+        },
+        onError: (error) {
+          debugPrint("🔴 Firebase Stream Error: $error");
+        },
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _ordersSubscription?.cancel();
+    super.dispose();
+  }
 
   // Cart state (local, not persisted — lives only during the waiter's session)
   final Map<String, int> _cart = {}; // menuItem.id → quantity
@@ -44,7 +73,8 @@ class OrderProvider extends ChangeNotifier {
 
   List<MenuItem> get menu => _repository.getMenu();
 
-  List<Order> get allOrders => _repository.getAllOrders();
+  List<Order> get allOrders => 
+      _repository is FirebaseOrderRepository ? _allOrders : _repository.getAllOrders();
 
   /// Orders the kitchen is working on
   List<Order> get pendingOrders =>
@@ -53,6 +83,10 @@ class OrderProvider extends ChangeNotifier {
   /// Orders the waiter needs to pick up and deliver
   List<Order> get readyOrders =>
       allOrders.where((o) => o.status == OrderStatus.ready).toList();
+
+  /// Orders that have been delivered, waiting for Billing/Cashier to close
+  List<Order> get deliveredOrders =>
+      allOrders.where((o) => o.status == OrderStatus.delivered).toList();
 
   int get cartItemCount =>
       _cart.values.fold(0, (sum, qty) => sum + qty);
@@ -136,28 +170,40 @@ class OrderProvider extends ChangeNotifier {
 
     try {
       await _repository.updateOrderStatus(orderId, OrderStatus.ready);
-      // ---------------------------------------------------------------------------
-      // FIREBASE SWAP POINT #3 (Real-time):
-      // With Firebase, you would use a Firestore Stream listener instead of
-      // calling notifyListeners() manually. The stream fires automatically when
-      // the Firestore document changes, even from another device.
-      // Example in provider:
-      //   FirebaseFirestore.instance.collection('orders')
-      //     .where('status', isEqualTo: 'pending')
-      //     .snapshots()
-      //     .listen((snapshot) { ... notifyListeners(); });
-      // ---------------------------------------------------------------------------
+      // NOTE: With Firebase stream, we don't strictly need to notifyListeners 
+      // here because the stream will emit a new event, but we keep it to reset isLoading.
     } catch (e) {
       debugPrint('Error updating order: $e');
     } finally {
       _isLoading = false;
-      notifyListeners(); // This makes the Waiter's screen update instantly
+      notifyListeners(); 
     }
   }
 
   /// Marks an order as Delivered — called from the Waiter's Ready screen.
   Future<void> markOrderAsDelivered(String orderId) async {
     await _repository.updateOrderStatus(orderId, OrderStatus.delivered);
+    if (_repository is! FirebaseOrderRepository) {
+      notifyListeners();
+    }
+  }
+
+  /// Permanently deletes the order from Firestore to free up space 
+  /// Called from the Billing/Cashier Dashboard.
+  Future<void> deleteOrder(String orderId) async {
+    _isLoading = true;
     notifyListeners();
+
+    try {
+      await _repository.deleteOrder(orderId);
+      if (_repository is! FirebaseOrderRepository) {
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error deleting order: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

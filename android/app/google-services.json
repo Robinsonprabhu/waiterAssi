@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "650918867939",
+    "project_id": "waiter-assi",
+    "storage_bucket": "waiter-assi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:650918867939:android:83a1442317f955ed5666d6",
+        "android_client_info": {
+          "package_name": "com.example.waiterassi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCz-vMpUMqWJAYIfTk1Obgt0KkSq8YVSAs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

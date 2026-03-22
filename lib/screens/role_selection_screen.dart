@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:waiter_assistant/core/app_theme.dart';
 import 'package:waiter_assistant/screens/waiter/waiter_dashboard_screen.dart';
 import 'package:waiter_assistant/screens/kitchen/kitchen_dashboard_screen.dart';
+import 'package:waiter_assistant/screens/billing/billing_dashboard_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -16,7 +17,7 @@ class RoleSelectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -45,7 +46,7 @@ class RoleSelectionScreen extends StatelessWidget {
                   letterSpacing: 1.2,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 32),
 
               // --- WAITER BUTTON ---
               _RoleButton(
@@ -77,7 +78,23 @@ class RoleSelectionScreen extends StatelessWidget {
                 ),
               ),
 
-              const Spacer(),
+              const SizedBox(height: 24),
+
+              // --- BILLING / CASHIER BUTTON ---
+              _RoleButton(
+                emoji: '🧾',
+                title: 'I am the Cashier',
+                subtitle: 'Close bills & print receipts',
+                color: Colors.blueAccent.shade700,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const BillingDashboardScreen(),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
               Text(
                 'v1.0.0 MVP',
                 textAlign: TextAlign.center,

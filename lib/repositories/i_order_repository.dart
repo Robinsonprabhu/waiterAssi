@@ -24,4 +24,7 @@ abstract class IOrderRepository {
 
   /// Updates the status of an existing order by its ID.
   Future<void> updateOrderStatus(String orderId, OrderStatus newStatus);
+
+  /// Permanently deletes an order (used by Billing screen)
+  Future<void> deleteOrder(String orderId);
 }
