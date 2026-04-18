@@ -4,6 +4,7 @@
 // Tab 1: Menu (to build cart) | Tab 2: Ready for Pickup
 // ===========================================================================
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:waiter_assistant/core/app_theme.dart';
@@ -20,16 +21,47 @@ class WaiterDashboardScreen extends StatefulWidget {
 class _WaiterDashboardScreenState extends State<WaiterDashboardScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  int _previousReadyCount = 0; // tracks how many ready orders we last saw
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Set the initial count AFTER the first frame so we don't
+    // play the sound on app launch for orders that were already ready.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _previousReadyCount =
+            context.read<OrderProvider>().readyOrders.length;
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final currentReadyCount =
+        context.watch<OrderProvider>().readyOrders.length;
+    if (currentReadyCount > _previousReadyCount) {
+      // A new order just became ready — alert the waiter!
+      _playNotificationSound();
+    }
+    _previousReadyCount = currentReadyCount;
+  }
+
+  Future<void> _playNotificationSound() async {
+    try {
+      await _audioPlayer.play(AssetSource('sounds/notification.mp3'));
+    } catch (e) {
+      debugPrint('🔔 Could not play notification sound: $e');
+    }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
