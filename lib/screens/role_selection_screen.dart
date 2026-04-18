@@ -9,6 +9,7 @@ import 'package:waiter_assistant/core/app_theme.dart';
 import 'package:waiter_assistant/screens/waiter/waiter_dashboard_screen.dart';
 import 'package:waiter_assistant/screens/kitchen/kitchen_dashboard_screen.dart';
 import 'package:waiter_assistant/screens/billing/billing_dashboard_screen.dart';
+import 'package:waiter_assistant/screens/admin/admin_menu_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -90,6 +91,22 @@ class RoleSelectionScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const BillingDashboardScreen(),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // --- ADMIN / OWNER BUTTON ---
+              _RoleButton(
+                emoji: '⚙️',
+                title: 'I am the Owner',
+                subtitle: 'Manage the food menu',
+                color: Colors.deepPurple.shade700,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AdminMenuScreen(),
                   ),
                 ),
               ),

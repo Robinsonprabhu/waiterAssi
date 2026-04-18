@@ -101,6 +101,27 @@ class OrderProvider extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
+  // MENU ADMIN ACTIONS
+  // ---------------------------------------------------------------------------
+
+  void addMenuItem(MenuItem item) {
+    _repository.addMenuItem(item);
+    notifyListeners();
+  }
+
+  void updateMenuItem(MenuItem item) {
+    _repository.updateMenuItem(item);
+    notifyListeners();
+  }
+
+  void deleteMenuItem(String itemId) {
+    _repository.deleteMenuItem(itemId);
+    // Also remove from cart if it's there
+    _cart.remove(itemId);
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
   // CART ACTIONS
   // ---------------------------------------------------------------------------
 

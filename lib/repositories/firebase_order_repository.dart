@@ -7,23 +7,37 @@ class FirebaseOrderRepository implements IOrderRepository {
 
   // Static menu — in a real app, you would fetch this from a 'menu' collection
   // For the MVP, we keep the static list to avoid complex setup.
-  final List<MenuItem> _menu = const [
+  final List<MenuItem> _menu = [
     MenuItem(id: 'item_01', name: 'Chicken Biryani',      emoji: '🍗', price: 180, category: 'Main Course'),
     MenuItem(id: 'item_02', name: 'Veg Biryani',          emoji: '🍚', price: 140, category: 'Main Course'),
     MenuItem(id: 'item_03', name: 'Butter Chicken',       emoji: '🍛', price: 200, category: 'Main Course'),
     MenuItem(id: 'item_04', name: 'Paneer Butter Masala', emoji: '🧀', price: 170, category: 'Main Course'),
     MenuItem(id: 'item_05', name: 'Masala Dosa',  emoji: '🥞', price: 80,  category: 'Snacks'),
-    MenuItem(id: 'item_06', name: 'Idli Sambar',  emoji: '🫓', price: 60,  category: 'Snacks'),
+    MenuItem(id: 'item_06', name: 'Idli Sambar',  emoji: '🪳', price: 60,  category: 'Snacks'),
     MenuItem(id: 'item_07', name: 'Vada',         emoji: '🍩', price: 50,  category: 'Snacks'),
-    MenuItem(id: 'item_08', name: 'Chapati',  emoji: '🫓', price: 40, category: 'Breads'),
-    MenuItem(id: 'item_09', name: 'Naan',     emoji: '🍞', price: 50, category: 'Breads'),
-    MenuItem(id: 'item_10', name: 'Chai',       emoji: '☕', price: 20, category: 'Drinks'),
-    MenuItem(id: 'item_11', name: 'Lassi',      emoji: '🥛', price: 60, category: 'Drinks'),
-    MenuItem(id: 'item_12', name: 'Cold Drink', emoji: '🥤', price: 40, category: 'Drinks'),
+    MenuItem(id: 'item_08', name: 'Chapati',      emoji: '🪳', price: 40, category: 'Breads'),
+    MenuItem(id: 'item_09', name: 'Naan',         emoji: '🍞', price: 50, category: 'Breads'),
+    MenuItem(id: 'item_10', name: 'Chai',         emoji: '☕', price: 20, category: 'Drinks'),
+    MenuItem(id: 'item_11', name: 'Lassi',        emoji: '🥛', price: 60, category: 'Drinks'),
+    MenuItem(id: 'item_12', name: 'Cold Drink',   emoji: '🥤', price: 40, category: 'Drinks'),
   ];
 
   @override
-  List<MenuItem> getMenu() => _menu;
+  List<MenuItem> getMenu() => List.unmodifiable(_menu);
+
+  @override
+  void addMenuItem(MenuItem item) => _menu.add(item);
+
+  @override
+  void updateMenuItem(MenuItem item) {
+    final index = _menu.indexWhere((m) => m.id == item.id);
+    if (index != -1) _menu[index] = item;
+  }
+
+  @override
+  void deleteMenuItem(String itemId) {
+    _menu.removeWhere((m) => m.id == itemId);
+  }
 
   @override
   List<Order> getAllOrders() {

@@ -13,6 +13,15 @@ abstract class IOrderRepository {
   /// Returns the full static menu list
   List<MenuItem> getMenu();
 
+  /// Adds a new menu item
+  void addMenuItem(MenuItem item);
+
+  /// Updates an existing menu item (matched by id)
+  void updateMenuItem(MenuItem item);
+
+  /// Deletes a menu item by its id
+  void deleteMenuItem(String itemId);
+
   /// Returns all orders currently in memory / from the database
   List<Order> getAllOrders();
 
