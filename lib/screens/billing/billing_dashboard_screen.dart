@@ -16,9 +16,9 @@ class BillingDashboardScreen extends StatelessWidget {
       ),
       body: Consumer<OrderProvider>(
         builder: (context, provider, child) {
-          final deliveredOrders = provider.deliveredOrders;
+          final groupedOrders = provider.deliveredOrdersByTable;
 
-          if (deliveredOrders.isEmpty) {
+          if (groupedOrders.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -44,10 +44,15 @@ class BillingDashboardScreen extends StatelessWidget {
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: deliveredOrders.length,
+            itemCount: groupedOrders.length,
             itemBuilder: (context, index) {
-              final order = deliveredOrders[index];
-              return _BillingOrderCard(order: order, provider: provider);
+              final tableNumber = groupedOrders.keys.elementAt(index);
+              final tableOrders = groupedOrders[tableNumber]!;
+              return _BillingTableCard(
+                tableNumber: tableNumber,
+                orders: tableOrders,
+                provider: provider,
+              );
             },
           );
         },
@@ -56,14 +61,21 @@ class BillingDashboardScreen extends StatelessWidget {
   }
 }
 
-class _BillingOrderCard extends StatelessWidget {
-  final Order order;
+class _BillingTableCard extends StatelessWidget {
+  final int tableNumber;
+  final List<Order> orders;
   final OrderProvider provider;
 
-  const _BillingOrderCard({required this.order, required this.provider});
+  const _BillingTableCard({
+    required this.tableNumber,
+    required this.orders,
+    required this.provider,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final totalAmount = orders.fold(0.0, (sum, o) => sum + o.totalAmount);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -91,7 +103,7 @@ class _BillingOrderCard extends StatelessWidget {
                     const Icon(Icons.table_restaurant, color: Colors.blueAccent),
                     const SizedBox(width: 8),
                     Text(
-                      'TABLE ${order.tableNumber}',
+                      'TABLE $tableNumber',
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -107,7 +119,7 @@ class _BillingOrderCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '₹${order.totalAmount.toStringAsFixed(0)}',
+                    '₹${totalAmount.toStringAsFixed(0)}',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -120,7 +132,7 @@ class _BillingOrderCard extends StatelessWidget {
             const SizedBox(height: 16),
             const Divider(color: AppTheme.divider),
             const SizedBox(height: 12),
-            ...order.items.map((item) => Padding(
+            ...orders.expand((order) => order.items).map((item) => Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -166,7 +178,7 @@ class _BillingOrderCard extends StatelessWidget {
         backgroundColor: AppTheme.cardBg,
         title: const Text('Close Bill?', style: TextStyle(color: AppTheme.textPrimary)),
         content: Text(
-          'Closing the bill for Table ${order.tableNumber} will permanently delete this order from the database. Make sure payment is collected.',
+          'Closing the bill for Table $tableNumber will permanently delete all associated orders from the database. Make sure payment is collected.',
           style: const TextStyle(color: AppTheme.textSecondary),
         ),
         actions: [
@@ -184,7 +196,8 @@ class _BillingOrderCard extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      await provider.deleteOrder(order.id);
+      final orderIds = orders.map((o) => o.id).toList();
+      await provider.deleteTableOrders(orderIds);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

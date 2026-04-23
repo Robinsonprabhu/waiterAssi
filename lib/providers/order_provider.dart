@@ -106,6 +106,15 @@ class OrderProvider extends ChangeNotifier {
   List<Order> get deliveredOrders =>
       allOrders.where((o) => o.status == OrderStatus.delivered).toList();
 
+  /// Group delivered orders by table number for consolidated billing
+  Map<int, List<Order>> get deliveredOrdersByTable {
+    final Map<int, List<Order>> grouped = {};
+    for (var order in deliveredOrders) {
+      grouped.putIfAbsent(order.tableNumber, () => []).add(order);
+    }
+    return grouped;
+  }
+
   int get cartItemCount =>
       _cart.values.fold(0, (sum, qty) => sum + qty);
 
@@ -240,6 +249,26 @@ class OrderProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error deleting order: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Closes an entire table by deleting all its delivered orders
+  Future<void> deleteTableOrders(List<String> orderIds) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      for (final orderId in orderIds) {
+        await _repository.deleteOrder(orderId);
+      }
+      if (_repository is! FirebaseOrderRepository) {
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error clearing table orders: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

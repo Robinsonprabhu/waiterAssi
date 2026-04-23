@@ -4,8 +4,8 @@
 // Tab 1: Menu (to build cart) | Tab 2: Ready for Pickup
 // ===========================================================================
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:waiter_assistant/core/app_theme.dart';
 import 'package:waiter_assistant/providers/order_provider.dart';
@@ -21,7 +21,6 @@ class WaiterDashboardScreen extends StatefulWidget {
 class _WaiterDashboardScreenState extends State<WaiterDashboardScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final AudioPlayer _audioPlayer = AudioPlayer();
   int _previousReadyCount = 0; // tracks how many ready orders we last saw
 
   @override
@@ -52,7 +51,14 @@ class _WaiterDashboardScreenState extends State<WaiterDashboardScreen>
 
   Future<void> _playNotificationSound() async {
     try {
-      await _audioPlayer.play(AssetSource('sounds/notification.mp3'));
+      // Standard short beep beep with vibration
+      HapticFeedback.heavyImpact();
+      SystemSound.play(SystemSoundType.alert);
+      
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      HapticFeedback.heavyImpact();
+      SystemSound.play(SystemSoundType.alert);
     } catch (e) {
       debugPrint('🔔 Could not play notification sound: $e');
     }
@@ -61,7 +67,6 @@ class _WaiterDashboardScreenState extends State<WaiterDashboardScreen>
   @override
   void dispose() {
     _tabController.dispose();
-    _audioPlayer.dispose();
     super.dispose();
   }
 
