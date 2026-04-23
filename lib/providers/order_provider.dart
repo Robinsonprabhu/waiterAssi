@@ -29,7 +29,9 @@ class OrderProvider extends ChangeNotifier {
   // --- Internal State ---
   bool _isLoading = false;
   List<Order> _allOrders = [];
+  List<MenuItem>? _allMenu;
   StreamSubscription<List<Order>>? _ordersSubscription;
+  StreamSubscription<List<MenuItem>>? _menuSubscription;
 
   OrderProvider([IOrderRepository? repository])
       : _repository = repository ?? MockOrderRepository() {
@@ -38,7 +40,9 @@ class OrderProvider extends ChangeNotifier {
 
   void _initStream() {
     if (_repository is FirebaseOrderRepository) {
-      _ordersSubscription = (_repository as FirebaseOrderRepository)
+      final fbRepo = _repository as FirebaseOrderRepository;
+      
+      _ordersSubscription = fbRepo
           .watchAllOrders()
           .cast<List<Order>>()
           .listen(
@@ -50,12 +54,25 @@ class OrderProvider extends ChangeNotifier {
           debugPrint("🔴 Firebase Stream Error: $error");
         },
       );
+
+      _menuSubscription = fbRepo
+          .watchMenu()
+          .listen(
+        (items) {
+          _allMenu = items;
+          notifyListeners(); // Auto-update UI on Firestore change
+        },
+        onError: (error) {
+          debugPrint("🔴 Firebase Menu Stream Error: $error");
+        },
+      );
     }
   }
 
   @override
   void dispose() {
     _ordersSubscription?.cancel();
+    _menuSubscription?.cancel();
     super.dispose();
   }
 
@@ -71,7 +88,8 @@ class OrderProvider extends ChangeNotifier {
 
   Map<String, int> get cart => Map.unmodifiable(_cart);
 
-  List<MenuItem> get menu => _repository.getMenu();
+  List<MenuItem> get menu => 
+      _repository is FirebaseOrderRepository ? (_allMenu ?? _repository.getMenu()) : _repository.getMenu();
 
   List<Order> get allOrders => 
       _repository is FirebaseOrderRepository ? _allOrders : _repository.getAllOrders();

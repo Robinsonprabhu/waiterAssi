@@ -7,7 +7,8 @@ class FirebaseOrderRepository implements IOrderRepository {
 
   // Static menu — in a real app, you would fetch this from a 'menu' collection
   // For the MVP, we keep the static list to avoid complex setup.
-  final List<MenuItem> _menu = [
+  // Static default menu used as fallback before stream connects
+  final List<MenuItem> _defaultMenu = [
     MenuItem(id: 'item_01', name: 'Chicken Biryani',      emoji: '🍗', price: 180, category: 'Main Course'),
     MenuItem(id: 'item_02', name: 'Veg Biryani',          emoji: '🍚', price: 140, category: 'Main Course'),
     MenuItem(id: 'item_03', name: 'Butter Chicken',       emoji: '🍛', price: 200, category: 'Main Course'),
@@ -23,20 +24,31 @@ class FirebaseOrderRepository implements IOrderRepository {
   ];
 
   @override
-  List<MenuItem> getMenu() => List.unmodifiable(_menu);
+  List<MenuItem> getMenu() => List.unmodifiable(_defaultMenu);
 
   @override
-  void addMenuItem(MenuItem item) => _menu.add(item);
+  void addMenuItem(MenuItem item) {
+    _db.collection('menu').doc(item.id).set({
+      'name': item.name,
+      'emoji': item.emoji,
+      'price': item.price,
+      'category': item.category,
+    });
+  }
 
   @override
   void updateMenuItem(MenuItem item) {
-    final index = _menu.indexWhere((m) => m.id == item.id);
-    if (index != -1) _menu[index] = item;
+    _db.collection('menu').doc(item.id).update({
+      'name': item.name,
+      'emoji': item.emoji,
+      'price': item.price,
+      'category': item.category,
+    });
   }
 
   @override
   void deleteMenuItem(String itemId) {
-    _menu.removeWhere((m) => m.id == itemId);
+    _db.collection('menu').doc(itemId).delete();
   }
 
   @override
@@ -97,6 +109,19 @@ class FirebaseOrderRepository implements IOrderRepository {
         }
       }
       return parsedOrders;
+    });
+  }
+
+  /// Real-time stream of the menu
+  Stream<List<MenuItem>> watchMenu() {
+    return _db.collection('menu').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => MenuItem(
+        id: doc.id,
+        name: doc.data()['name'] ?? '',
+        emoji: doc.data()['emoji'] ?? '🍽️',
+        price: (doc.data()['price'] as num?)?.toDouble() ?? 0.0,
+        category: doc.data()['category'] ?? 'Other',
+      )).toList();
     });
   }
 }
